@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import db from "@/db/db";
-import { Todo } from "@/db/schema";
-import { and, gte, lte } from "drizzle-orm";
+import db from "@/drizzle/db";
+import { TodosTable } from "@/drizzle/schema";
+import { and, eq, gte, lte } from "drizzle-orm";
+import { getCurrentUser } from "@/auth/nextjs/currentUser";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const start = searchParams.get("start");
   const end = searchParams.get("end");
+  const user = await getCurrentUser({withFullUser:true})
 
-  if (!start || !end) {
+  if (!start || !end || !user) {
     return NextResponse.json([], { status: 400 });
   }
 
@@ -21,11 +23,12 @@ export async function GET(request: NextRequest) {
 
   const todos = await db
     .select()
-    .from(Todo)
+    .from(TodosTable)
     .where(
       and(
-        lte(Todo.planStartDate, endDate),
-        gte(Todo.planEndDate, startDate)
+        lte(TodosTable.planStartDate, endDate),
+        gte(TodosTable.planEndDate, startDate),
+        eq(TodosTable.userId, user.id)
       )
     );
 

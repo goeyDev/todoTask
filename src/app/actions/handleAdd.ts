@@ -1,9 +1,10 @@
 'use server';
 
-import db from "@/db/db";
-import { Todo } from "@/db/schema";
+import db from "@/drizzle/db";
+import { TodosTable } from "@/drizzle/schema";
 import { redirect } from "next/navigation";
 import { validateDateRange } from "@/app/components/helper";
+import { getCurrentUser } from "@/auth/nextjs/currentUser";
 
 // Define correct shape
 export type AddFormState = {
@@ -14,6 +15,9 @@ export async function handleAdd(
   prevState: AddFormState,
   formData: FormData
 ): Promise<AddFormState> {
+
+   const user = await getCurrentUser({withFullUser:true})
+
   const title = formData.get("title") as string;
   const planStartDate = formData.get("planStartDate") as string;
   const planEndDate = formData.get("planEndDate") as string;
@@ -26,12 +30,14 @@ export async function handleAdd(
     return { error: "End date must be later than start date." };
   }
 
-  await db.insert(Todo).values({
+  await db.insert(TodosTable).values({
     title: title.charAt(0).toUpperCase() + title.slice(1),
     complete: false,
     planStartDate: new Date(planStartDate),
     planEndDate: new Date(planEndDate),
-  });
+    userId:user?.id
+  })
+
 
   redirect("/");
 }

@@ -1,11 +1,12 @@
 "use server";
 
-import db from "@/db/db";
-import { Todo } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import db from "@/drizzle/db";
+import { TodosTable } from "@/drizzle/schema";
+import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
-export async function deleteTodo(id: string) {
-  await db.delete(Todo).where(eq(Todo.id, id));
+export async function deleteTodo(id: string,userID:string) {
+
+  await db.delete(TodosTable).where(and(eq(TodosTable.id, id),eq(TodosTable.userId,userID)));
   redirect("/")
 }

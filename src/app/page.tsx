@@ -1,13 +1,15 @@
 export const dynamic = "force-dynamic"; // 👈 add this line
 
-import db from "@/db/db";
-import { Todo } from "@/db/schema";
+import db from "@/drizzle/db";
+import { TodosTable } from "@/drizzle/schema";
 import Link from "next/link";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { toggleTodo } from "./actions/toggleTodo";
 import { deleteTodo } from "./actions/deleteTodo";
 import TodoItem from "./components/TodoItem";
 import { updateTodo } from "./actions/updateTodo";
+import { getCurrentUser } from "@/auth/nextjs/currentUser";
+import Guest from "./components/guess";
 
 type PageProps = {
   searchParams: Promise<{
@@ -17,7 +19,28 @@ type PageProps = {
 
 // {searchParams:Promise<{filter:string}>}
 export default async function Home({ searchParams }: PageProps) {
-   const params = await searchParams;
+
+  const user = await getCurrentUser({withFullUser:true})
+
+  
+  if(!user){
+    return <div className="min-h-screen flex flex-col">
+      <div className="flex-grow flex items-center justify-center">
+        <h1 className="text-3xl font-bold">Welcome to my Page</h1>
+        <div className="flex space-x-4 mb-4">
+          <Link href="/sign-in" className="flex-1 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Sign In</Link>
+          <Link href="/sign-up" className="flex-1 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Sign Up</Link>
+        </div>
+      </div>
+      {/* guest menu */}
+      <div className="">
+        <Guest/>
+      </div>
+    </div>
+  }
+
+  
+  const params = await searchParams;
   const filter = params.filter ?? "active"; // defaults to active
   // const filter = (await searchParams).filter ?? "active"; // defaults to active good
   
@@ -27,11 +50,23 @@ export default async function Home({ searchParams }: PageProps) {
   let todos;
 
   if (filter === "active") {
-    todos = await db.select().from(Todo).where(eq(Todo.complete, false));
+    // todos = await db.select().from(TodosTable).where(and(eq(TodosTable.complete, false),eq(userTable.email,user.email))).leftJoin(userTable, eq(TodosTable.userId, userTable.id));
+    todos = await db
+  .select()
+  .from(TodosTable)
+  .where(
+    and(
+      eq(TodosTable.complete, false),
+      eq(TodosTable.userId, user.id)
+    )
+  );
   } else if (filter === "completed") {
-    todos = await db.select().from(Todo).where(eq(Todo.complete, true));
+    todos = await db.select().from(TodosTable).where( and(
+      eq(TodosTable.complete, true),
+      eq(TodosTable.userId, user.id)
+    ));
   } else {
-    todos = await db.select().from(Todo); // includes both complete & incomplete
+    todos = await db.select().from(TodosTable).where(eq(TodosTable.userId,user.id)); // includes both complete & incomplete
   }
 
   return (
@@ -68,13 +103,14 @@ export default async function Home({ searchParams }: PageProps) {
       </div>
 
       {todos.length <= 0 ? (
-        <p className="text-2xl text-center mt-5">No tasks found.</p>
+        <p className="text-2xl text-center mt-5">No any tasks found from database.</p>
       ) : (
         <section className="mt-10 space-y-6">
           {todos.map((todo) => (
             <TodoItem
               key={todo.id}
               {...todo}
+              userID={user.id}
               toggleTodo={toggleTodo}
               deleteTodo={deleteTodo}
               updateTodo={updateTodo}
