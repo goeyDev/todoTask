@@ -1,0 +1,110 @@
+"use client";
+
+import { useState } from "react";
+import PlannedDateInfo from "./PlannedDateInfo";
+
+interface TodoItemProps {
+  id: string;
+  title: string;
+  complete: boolean;
+  planStartDate: string | Date;
+  planEndDate: string | Date;
+  toggleTodo: (id: string, complete: boolean) => void;
+  updateTodo?: (id: string, newTitle: string) => void;
+  deleteTodo?: (id: string) => void; // optional for reuse
+}
+
+export default function TodoItem({
+  id,
+  title,
+  complete,
+  planStartDate,
+  planEndDate,
+  toggleTodo,
+  deleteTodo,
+  updateTodo,
+}: TodoItemProps) {
+  const [editMode, setEditMode] = useState<boolean>(false);
+  const [newTitle, setNewTitle] = useState<string>(title);
+
+  return (
+    <div className="bg-gray-800 text-white rounded-lg p-4 mb-4 shadow-md">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <input
+            id={id}
+            type="checkbox"
+            className="w-5 h-5 accent-blue-500"
+            defaultChecked={complete}
+            onChange={(e) => toggleTodo(id, e.target.checked)}
+          />
+
+          {editMode ? (
+            <form
+              action={async () => {
+                if (updateTodo && newTitle.trim()) {
+                  await updateTodo(id, newTitle);
+                }
+                setEditMode(false);
+              }}
+              className="flex items-center gap-2"
+            >
+              <input
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                className="bg-gray-100 text-black rounded px-2 py-1 text-sm"
+              />
+              <button
+                type="submit"
+                className="text-blue-400 hover:text-blue-600 text-lg"
+              >
+                Save
+              </button>
+            </form>
+          ) : (
+            <label htmlFor={id} className="text-xl font-semibold">
+              {title}
+            </label>
+          )}
+        </div>
+
+        <p className="text-sm text-gray-400 whitespace-nowrap">
+          📅 {new Date(planStartDate).toLocaleDateString()} →{" "}
+          {new Date(planEndDate).toLocaleDateString()}
+        </p>
+      </div>
+
+      <PlannedDateInfo planStartDate={planStartDate} planEndDate={planEndDate} />
+
+      <div className="flex gap-4 mt-3">
+        <button
+          onClick={() => setEditMode(!editMode)}
+          className="text-yellow-400 hover:text-yellow-600 text-lg"
+        >
+          {editMode ? "Cancel" : "Edit"}
+        </button>
+
+        {deleteTodo && (
+          <form action={() => deleteTodo(id)}>
+            <button className="text-red-500 hover:text-red-700 text-lg">
+              Delete
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+} and import db from "@/db/db"
+import { Todo } from "@/db/schema"
+import { eq } from "drizzle-orm"
+import { redirect } from "next/navigation"
+
+ export async function updateTodo(id:string,newTitle:string){
+    if(!newTitle.trim()) return
+
+    await db
+        .update(Todo)
+        .set({title:newTitle})
+        .where(eq(Todo.id,id))
+    redirect("/")
+ }

@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic"; // 👈 add this line
+export const dynamic = 'force-dynamic'; // 👈 add this line
 
 import db from "@/db/db";
 import { Todo } from "@/db/schema";
@@ -10,19 +10,16 @@ import TodoItem from "./components/TodoItem";
 import { updateTodo } from "./actions/updateTodo";
 
 type PageProps = {
-  searchParams: Promise<{
+  searchParams: {
     filter?: string;
-  }>;
+  };
 };
 
-// {searchParams:Promise<{filter:string}>}
 export default async function Home({ searchParams }: PageProps) {
-   const params = await searchParams;
+  const params = await searchParams;
   const filter = params.filter ?? "active"; // defaults to active
-  // const filter = (await searchParams).filter ?? "active"; // defaults to active good
-  
 
-  //console.log("Filter value:", filter); // ✅ debug output
+  console.log("Filter value:", filter); // ✅ debug output
 
   let todos;
 
@@ -36,7 +33,7 @@ export default async function Home({ searchParams }: PageProps) {
 
   return (
     <main className="w-full mx-auto max-w-4xl px-4 py-8">
-      <h1 className=" text-4xl font-bold text-center text-blue-400 hover:underline hover:text-blue-600">
+      <h1 className=" text-4xl font-bold text-center text-gray-800">
         Todo List
       </h1>
 
@@ -82,10 +79,6 @@ export default async function Home({ searchParams }: PageProps) {
           ))}
         </section>
       )}
-      {/* <div>
-        <p>Filter</p>
-        <DateRangeFilter />
-      </div> */}
     </main>
   );
 }

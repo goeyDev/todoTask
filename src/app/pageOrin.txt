@@ -1,0 +1,43 @@
+import db from "@/db/db";
+import { Todo } from "@/db/schema";
+import Image from "next/image";
+import Link from "next/link";
+import Toggle  from "./components/Toggle";
+import { eq } from "drizzle-orm";
+
+export default async function Home() {
+  // await db.insert(Todo).values({title:"test1",complete:false})
+
+  const todos = await db.select().from(Todo);
+
+  async function toggleTodo(id:string, complete:boolean){
+    "use server"
+
+  const [status] = await db.select().from(Todo).where(eq(Todo.id,id))
+
+  if(status.complete == false ){
+    status.complete = true
+  }else{
+    status.complete = false
+  }
+  
+  await db.update(Todo).set({complete:status.complete}).where(eq(Todo.id,id))
+  }
+//  await db.update(Todo).set({complete:true}).where(eq(Todo.id,id))
+  return (
+    <>
+      <div className="flex flex-col items-center bg-slate-500 hover:bg-slate-700 text-2xl">
+        Todo List
+      </div>
+
+      <button className="mt-5 py-3 px-2 bg-green-300 text-black border rounded-lg hover:bg-green-600">
+        <Link href="/new">Add New Todo</Link>
+      </button>
+      <div className="mt-10 pl-5">
+         {todos.map((todo) => (
+             <Toggle key = {todo.id} {...todo} toggleTodo={toggleTodo}/> 
+         ))}
+      </div>
+    </>
+  );
+}
