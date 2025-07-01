@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic"; // 👈 add this line
 
-import db from "@/drizzle/db";
+
 import { TodosTable } from "@/drizzle/schema";
 import Link from "next/link";
 import { and, eq } from "drizzle-orm";
@@ -10,6 +10,7 @@ import TodoItem from "./components/TodoItem";
 import { updateTodo } from "./actions/updateTodo";
 import { getCurrentUser } from "@/auth/nextjs/currentUser";
 import Guest from "./components/guess";
+import db from "@/drizzle/db";
 
 type PageProps = {
   searchParams: Promise<{
@@ -23,29 +24,18 @@ export default async function Home({ searchParams }: PageProps) {
   const user = await getCurrentUser({withFullUser:true})
 
   
-  if(!user){
-    return <div className="min-h-screen flex flex-col">
-      <div className="flex-grow flex items-center justify-center">
-        <h1 className="text-3xl font-bold">Welcome to my Page</h1>
-        <div className="flex space-x-4 mb-4">
-          <Link href="/sign-in" className="flex-1 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Sign In</Link>
-          <Link href="/sign-up" className="flex-1 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Sign Up</Link>
-        </div>
-      </div>
-      {/* guest menu */}
-      <div className="">
-        <Guest/>
-      </div>
+  if (!user) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-300">
+      <Guest />
     </div>
-  }
+  )
+}
 
   
   const params = await searchParams;
   const filter = params.filter ?? "active"; // defaults to active
   // const filter = (await searchParams).filter ?? "active"; // defaults to active good
-  
-
-  //console.log("Filter value:", filter); // ✅ debug output
 
   let todos;
 

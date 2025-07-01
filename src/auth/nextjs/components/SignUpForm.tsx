@@ -109,9 +109,11 @@ export function SignUpForm() {
             <Link href="/sign-in">Sign In</Link>
           </Button>
           <Button type="submit">Sign Up</Button>
+          <Button asChild variant="link">
+            <Link href="/">Cancel</Link>
+          </Button>
         </div>
       </form>
-      <Link href="/" className="text-sm hover-scale-shadow hover:bg-purple-100 bg-purple-100 rounded-lg px-3 text-left"> Home </Link>
     </Form>
 
   )
