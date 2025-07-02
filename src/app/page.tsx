@@ -12,6 +12,7 @@ import { getCurrentUser } from "@/auth/nextjs/currentUser";
 import Guest from "./components/guess";
 import db from "@/drizzle/db";
 
+
 type PageProps = {
   searchParams: Promise<{
     filter?: string;
@@ -74,7 +75,7 @@ export default async function Home({ searchParams }: PageProps) {
         </Link>
       </div>
 
-      <div className="mt-8 flex justify-center gap-6 text-lg text-gray-500">
+      <div className="mt-8 flex justify-center gap-6 text-lg text-white">
         <Link href="/?filter=" className="hover:underline hover:text-blue-600">
           All
         </Link>

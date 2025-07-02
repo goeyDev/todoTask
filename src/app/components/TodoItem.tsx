@@ -129,7 +129,7 @@ export default function TodoItem({
         </div>
 
         {!editMode && !complete ? (
-          <div className="flex flex-col sm:flex-rowjustify-between items-end sm:items-center gap-2 sm:gap-4 p-4 hover:bg-gray-700 rounded-xl shadow-sm hover:border hover: border-gray-200 ">
+          <div className="flex flex-col sm:flex-row justify-between items-end sm:items-center gap-2 sm:gap-4 p-4 hover:bg-gray-700 rounded-xl shadow-sm hover:border hover: border-gray-200 ">
             <PlannedDateInfo
               planStartDate={planStartDate}
               planEndDate={planEndDate}
