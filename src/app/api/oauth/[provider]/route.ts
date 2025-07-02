@@ -1,36 +1,92 @@
-import { NextRequest, NextResponse } from "next/server";
-import db from "@/drizzle/db";
-import { TodosTable } from "@/drizzle/schema";
-import { and, eq, gte, lte } from "drizzle-orm";
-import { getCurrentUser } from "@/auth/nextjs/currentUser";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { getOAuthClient } from "@/auth/core/oauth/base"
+import { createUserSession } from "@/auth/core/session"
+import db  from "@/drizzle/db"
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const start = searchParams.get("start");
-  const end = searchParams.get("end");
-  const user = await getCurrentUser({withFullUser:true})
+import {
+  OAuthProvider,
+  oAuthProviders,
+  userOAuthAccountTable,
+  userTable,
+} from "@/drizzle/schema"
+import { eq } from "drizzle-orm"
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+import { NextRequest } from "next/server"
+import { z } from "zod"
 
-  if (!start || !end || !user) {
-    return NextResponse.json([], { status: 400 });
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ provider: string }> }
+) {
+  const { provider: rawProvider } = await params
+  const code = request.nextUrl.searchParams.get("code")
+  const state = request.nextUrl.searchParams.get("state")
+  const provider = z.enum(oAuthProviders).parse(rawProvider)
+
+  if (typeof code !== "string" || typeof state !== "string") {
+    redirect(
+      `/sign-in?oauthError=${encodeURIComponent(
+        "Failed to connect. Please try again - from Get."
+      )}`
+    )
   }
 
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-
-  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-    return NextResponse.json({ error: "Invalid dates" }, { status: 400 });
+  const oAuthClient = getOAuthClient(provider)
+  try {
+    const oAuthUser = await oAuthClient.fetchUser(code, state, await cookies())
+    const user = await connectUserToAccount(oAuthUser, provider)
+    await createUserSession(user, await cookies())
+  } catch (error) {
+    redirect(
+      `/sign-in?oauthError=${encodeURIComponent(
+        "Failed to connect. Please try again. from Oauth"
+      )}`
+    )
   }
 
-  const todos = await db
-    .select()
-    .from(TodosTable)
-    .where(
-      and(
-        lte(TodosTable.planStartDate, endDate),
-        gte(TodosTable.planEndDate, startDate),
-        eq(TodosTable.userId, user.id)
-      )
-    );
+  redirect("/")
+}
 
-  return NextResponse.json(todos);
+async function connectUserToAccount(
+  { id, email, name }: { id: string; email: string; name: string },
+  provider: OAuthProvider
+) {
+  // 1. First try to find existing user
+  let user = await db.query.userTable.findFirst({
+    where: eq(userTable.email, email),
+    columns: { id: true, role: true },
+  });
+
+  // 2. Create user if not found
+  if (!user) {
+    try {
+      const [newUser] = await db
+        .insert(userTable)
+        .values({ email, name })
+        .returning({ id: userTable.id, role: userTable.role });
+      user = newUser;
+    } catch (error) {
+      // Handle race condition where user might have been created by another request
+      user = await db.query.userTable.findFirst({
+        where: eq(userTable.email, email),
+        columns: { id: true, role: true },
+      });
+      if (!user) {
+        throw new Error("User creation failed");
+      }
+    }
+  }
+
+  // 3. Link OAuth account (with conflict handling)
+  await db
+    .insert(userOAuthAccountTable)
+    .values({
+      provider,
+      providerAccountId: id,
+      userId: user.id,
+    })
+    .onConflictDoNothing();
+
+  return user;
 }
